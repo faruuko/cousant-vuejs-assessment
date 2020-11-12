@@ -1,0 +1,152 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://unpkg.com/vue/dist/vue.min.js"></script>
+    <script type="text/javascript" src="csv2json.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        new Vue({
+          el: '#app',
+          data: {
+            selectedFile: null,
+            fileValidation: false,
+            fileError: false,
+            tableData: null,
+          },
+          methods: {
+            PrintCategories: function () {
+              if (!this.selectedFile) {
+                this.fileValidation = true;
+                return;
+              }
+
+              const jsonData = this.csvToJson(this.selectedFile);
+              const parsedJsonData = JSON.parse(jsonData);
+
+              const finalData = {};
+              parsedJsonData.forEach(function (x) {
+                finalData[x.CATEGORY] = (finalData[x.CATEGORY] || 0) + 1;
+              });
+
+              this.tableData = Object.entries(finalData).sort(
+                (a, b) => b[1] - a[1]
+              );
+            },
+            fileSelected: function (e) {
+              var files = e.target.files || e.dataTransfer.files;
+              if (!files.length) return;
+              this.createInput(files[0]);
+            },
+            createInput(file) {
+              let promise = new Promise((resolve, reject) => {
+                var reader = new FileReader();
+                var vm = this;
+                reader.onload = (e) => {
+                  resolve((vm.fileinput = reader.result));
+                };
+                reader.readAsText(file);
+              });
+
+              promise.then(
+                (result) => {
+                  this.selectedFile = this.fileinput;
+                },
+                (error) => {
+                  this.fileError = true;
+                }
+              );
+            },
+            csvToJson(csv) {
+              const json = CSVJSON.csv2json(csv, { parseNumbers: true });
+              return JSON.stringify(json);
+            },
+          },
+          watch: {
+            // Watch for changes in 'this.selectedFile', so the error can be taken way
+            selectedFile: function () {
+              if (!this.selectedFile) {
+                this.fileValidation = true;
+              } else {
+                this.fileValidation = false;
+              }
+            },
+          },
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="app">
+      <h1>Choose a CSV file</h1>
+
+      <p class="downloadLink">
+        <a
+          href="https://drive.google.com/u/0/uc?id=12kjBBH9rONRgjUNxXbYkBaBc8JJ_c_76&export=download"
+          download
+          >Click here</a
+        >
+        to view & download sample CSV file.
+      </p>
+
+      <input
+        type="file"
+        id="csvFile"
+        name="csvFile"
+        accept=".csv"
+        @change="fileSelected"
+      />
+      <p v-show="fileValidation" class="inputError">Please select a file!</p>
+      <p v-show="fileError" class="inputError">Something went wrong</p>
+
+      <br />
+      <br />
+
+      <button @click="PrintCategories">Print Categories</button>
+
+      <div v-if="tableData">
+        <table>
+          <tr>
+            <th>Category</th>
+            <th>Number of foods</th>
+          </tr>
+
+          <tr v-for="(value, index) in tableData" :key="index">
+            <td>{{ value[0] }}</td>
+            <td>{{ value[1] }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </body>
+
+  <style>
+    * {
+      font-family: 'Courier', Courier, monospace;
+    }
+
+    .inputError {
+      margin: 5px 0 0 0;
+      color: red;
+    }
+
+    table {
+      margin: 30px 0 0 0;
+    }
+
+    table,
+    th,
+    td {
+      border: 1px solid;
+    }
+
+    p {
+      font-size: 14px;
+    }
+
+    .downloadLink a {
+      color: black;
+      font-weight: bold;
+    }
+  </style>
+</html>
